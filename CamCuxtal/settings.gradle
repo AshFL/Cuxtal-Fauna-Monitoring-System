@@ -1,0 +1,2 @@
+rootProject.name='Cam Cuxtal'
+include ':app', 'OpenCV'
