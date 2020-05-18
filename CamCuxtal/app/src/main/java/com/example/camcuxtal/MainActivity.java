@@ -12,12 +12,15 @@ import android.view.WindowManager;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
 import com.physicaloid.lib.Physicaloid;
 import com.physicaloid.lib.usb.driver.uart.ReadLisener;
+
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.OpenCVLoader;
@@ -33,7 +36,6 @@ import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.video.Video;
 
-import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2 {
@@ -55,7 +57,6 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     private MatOfByte status;
     private MatOfFloat err;
     private int rows, rowStep, colStep, cols;
-    private double motionPercent;
     private boolean motionDetected = false;
     //Physicaloid USB Data Components
     Physicaloid PhysicalLoad;
@@ -87,10 +88,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         super.onCreate(savedInstanceState);
         Log.d(TAG, "on Create");
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        setContentView(R.layout.activity_main);                                     //UI Layout loaded
-        OpenCVCamView = (CameraBridgeViewBase) findViewById(R.id.cam_view);                                    //Identify cam view
-        textView = findViewById(R.id.arduino_log);                                  //Identify Serial Log view
-        textView.setVisibility(SurfaceView.VISIBLE);                                //Arduino Serial Log is visible
+        setContentView(R.layout.activity_main);                                         //UI Layout loaded
+        OpenCVCamView = (CameraBridgeViewBase) findViewById(R.id.cam_view);             //Identify cam view
+        textView = findViewById(R.id.arduino_log);                                      //Identify Serial Log view
+        textView.setVisibility(SurfaceView.VISIBLE);                                    //Arduino Serial Log is visible
         OpenCVCamView.setVisibility(SurfaceView.VISIBLE);                               //Cam view is invisible
         //Check Camera Permission
         OpenCVCamView.setCvCameraViewListener(this);                                    //Visual Listener activated
@@ -113,7 +114,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             if(ActivityCompat.shouldShowRequestPermissionRationale(this,Manifest.permission.WRITE_EXTERNAL_STORAGE));
             else { ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSIONS_WRITE_STORAGE); }
-        }
+        } else { Log.d(TAG, "Storage permissions granted"); }
     }
 
     @Override
@@ -136,11 +137,11 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 //                } else { this.finish(); }
 //                return;
 //            }
-//            case PERMISSIONS_WRITE_STORAGE: {
-//                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-//                } else { this.finish(); }
-//                return;
-//            }
+            case PERMISSIONS_WRITE_STORAGE: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                } else { this.finish(); }
+                return;
+            }
             default:{ super.onRequestPermissionsResult(requestCode, permissions, grantResults); }
         }
     }
@@ -196,9 +197,11 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         else {
             motionDetected = true;
             Log.d(TAG,"Motion Detected!");
+            serialTerminal(textView);
+            //saveResults(rgba, rgba.width(),rgba.height());                  //Save Results to Internal Storage
         }
         prevGray = gray.clone();
-        return rgba;                                                    //Test Camera View
+        return rgba;                                                        //Return UI camera in color
     }
 
     public void serialTerminal(View v) {
@@ -253,7 +256,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             Toast.makeText(this, "Cannot connect to Arduino! Check USB connection", Toast.LENGTH_LONG).show();
         }
     }
-    private void tAppend(TextView tv, CharSequence text){                       //Link Arduino Serial log to UI
+    private void tAppend(TextView tv, CharSequence text){                   //Link Arduino Serial log to UI
         final TextView ftv = tv;
         final CharSequence ftext = text;
         handler.post(new Runnable() {
@@ -261,6 +264,29 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             public void run() { ftv.append(ftext); }
         });
     }
+    //UNDER TESTING!!!
+//    public void saveResults(Mat frame, int width, int height){
+//        Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);     //Convert Mat array into Bitmap
+//        Mat tmp = new Mat (width,height,CvType.CV_8UC1,new Scalar(4));
+//        try {
+//            Imgproc.cvtColor(frame, tmp, Imgproc.COLOR_GRAY2RGBA, 4);
+//            Utils.matToBitmap(tmp, bmp);
+//        }
+//        catch (CvException e){Log.d("Exception",e.getMessage());}
+//        final JavaCameraView ctv;
+//        Log.d("bitmap","strm");
+//        ctv.setDrawingCacheEnabled(true);
+//        Bitmap bm = ctv.getDrawingCache();
+//        File fPath = Environment.getExternalStorageDirectory();                       //Get Storage directory
+//        File f = null;
+//        f = new File(fPath, "PNG.png");                                               //Compress picture as PNG file
+//        try {
+//            FileOutputStream strm = new FileOutputStream(f);
+//            bm.compress(Bitmap.CompressFormat.PNG, 80, strm);                         //Save picture to Storage
+//            strm.close();
+//        }
+//        catch (IOException e){ e.printStackTrace(); }
+//    }
 
     @Override
     protected void onDestroy() {
